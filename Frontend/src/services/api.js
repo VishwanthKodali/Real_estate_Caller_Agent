@@ -74,13 +74,15 @@ export const prospectsApi = {
 
 // Calls
 export const callsApi = {
-  startCampaign: (campaignId, maxCalls) => api.post(`/calls/${campaignId}/start`, null, { params: maxCalls ? { max_calls: maxCalls } : {} }),
-  callProspect: (campaignId, prospectId) => api.post(`/calls/${campaignId}/call/${prospectId}`),
-  logs: (campaignId, filters) => api.get(`/calls/${campaignId}/logs`, { params: filters }),
-  stats: campaignId => api.get(`/calls/${campaignId}/stats`),
-  hotProspects: campaignId => api.get(`/calls/${campaignId}/hot-prospects`),
-  updateOutcome: (campaignId, callId, params) => api.post(`/calls/${campaignId}/calls/${callId}/update-outcome`, null, { params }),
-  voices: () => api.get('/calls/voices'),
+  startCampaign:  (campaignId, maxCalls) => api.post(`/calls/${campaignId}/start`, null, { params: maxCalls ? { max_calls: maxCalls } : {} }),
+  callProspect:   (campaignId, prospectId) => api.post(`/calls/${campaignId}/call/${prospectId}`),
+  logs:           (campaignId, filters) => api.get(`/calls/${campaignId}/logs`, { params: filters }),
+  stats:          campaignId => api.get(`/calls/${campaignId}/stats`),
+  hotProspects:   campaignId => api.get(`/calls/${campaignId}/hot-prospects`),
+  updateOutcome:  (campaignId, callId, params) => api.post(`/calls/${campaignId}/calls/${callId}/update-outcome`, null, { params }),
+  voices:         () => api.get('/calls/voices'),
+  chat:           conversationId => api.get(`/calls/chat/${conversationId}`),  // ← NEW
+  refreshOutcomes: campaignId => api.post(`/calls/${campaignId}/refresh-outcomes`),
 }
 
 // Dashboard
