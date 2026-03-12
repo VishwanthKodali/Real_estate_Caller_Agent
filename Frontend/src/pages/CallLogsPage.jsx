@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Phone, Star, ChevronDown, ChevronUp, Download, Bot, User } from 'lucide-react'
+import { ArrowLeft, Phone, Star, ChevronDown, ChevronUp, Download, Bot, User, Play, Pause, Volume2 } from 'lucide-react'
 import { callsApi, campaignsApi, prospectsApi } from '../services/api'
 
 // ── Chat Transcript ───────────────────────────────────────────────────────────
@@ -57,6 +57,8 @@ export default function CallLogsPage() {
   const [expandedCall, setExpandedCall] = useState(null)
   const [hotProspects, setHotProspects] = useState([])
   const [chatData, setChatData] = useState({})       // { [call_id]: { messages, loading, error } }
+  const [audioState, setAudioState] = useState({})   // { [call_id]: { playing, loading, error } }
+  const audioRefs = useRef({})                        // { [call_id]: HTMLAudioElement }
 
   useEffect(() => {
     campaignsApi.get(campaignId).then(r => setCampaign(r.data))
@@ -88,6 +90,52 @@ export default function CallLogsPage() {
       }
     }
   }
+
+  const handlePlayAudio = (call) => {
+    if (!call.elevenlabs_conversation_id) return
+    const callId = call.id
+
+    // If already playing, pause it
+    const existing = audioRefs.current[callId]
+    if (existing) {
+      if (!existing.paused) {
+        existing.pause()
+        setAudioState(prev => ({ ...prev, [callId]: { ...prev[callId], playing: false } }))
+      } else {
+        existing.play()
+        setAudioState(prev => ({ ...prev, [callId]: { ...prev[callId], playing: true } }))
+      }
+      return
+    }
+
+    // First time — build URL with auth token and create audio element
+    const token = localStorage.getItem('token')
+    setAudioState(prev => ({ ...prev, [callId]: { playing: false, loading: true, error: null } }))
+
+    // Fetch audio as blob (need auth header)
+    fetch(`/api/v1/calls/audio/${call.elevenlabs_conversation_id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`Audio fetch failed: ${res.status}`)
+        return res.blob()
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob)
+        const audio = new Audio(url)
+        audioRefs.current[callId] = audio
+
+        audio.onended = () => setAudioState(prev => ({ ...prev, [callId]: { ...prev[callId], playing: false } }))
+        audio.onerror = () => setAudioState(prev => ({ ...prev, [callId]: { playing: false, loading: false, error: 'Playback failed' } }))
+
+        audio.play()
+        setAudioState(prev => ({ ...prev, [callId]: { playing: true, loading: false, error: null } }))
+      })
+      .catch(e => {
+        setAudioState(prev => ({ ...prev, [callId]: { playing: false, loading: false, error: 'Audio not available' } }))
+      })
+  }
+
 
   const loadLogs = async () => {
     const r = await callsApi.logs(campaignId)
@@ -222,20 +270,48 @@ export default function CallLogsPage() {
 
                   {expanded && (
                     <div className="px-4 pb-4 border-t border-gray-50 bg-gray-50">
-                      {/* Chat header */}
-                      <div className="flex items-center gap-4 mt-3 mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center"><Bot size={11} className="text-white" /></div>
-                          <span className="text-xs font-semibold text-indigo-600">AI Agent</span>
+                      {/* Chat header with Play button */}
+                      <div className="flex items-center justify-between mt-3 mb-2">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center"><Bot size={11} className="text-white" /></div>
+                            <span className="text-xs font-semibold text-indigo-600">AI Agent</span>
+                          </div>
+                          <span className="text-gray-300 text-xs">↔</span>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center"><User size={11} className="text-white" /></div>
+                            <span className="text-xs font-semibold text-emerald-600">{p?.name || 'Prospect'}</span>
+                          </div>
                         </div>
-                        <span className="text-gray-300 text-xs">↔</span>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center"><User size={11} className="text-white" /></div>
-                          <span className="text-xs font-semibold text-emerald-600">{p?.name || 'Prospect'}</span>
-                        </div>
+
+                        {/* Audio play button */}
+                        {call.elevenlabs_conversation_id && (
+                          <div className="flex items-center gap-2">
+                            {audioState[call.id]?.error && (
+                              <span className="text-xs text-red-400">{audioState[call.id].error}</span>
+                            )}
+                            <button
+                              onClick={e => { e.stopPropagation(); handlePlayAudio(call) }}
+                              disabled={audioState[call.id]?.loading}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                audioState[call.id]?.playing
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600'
+                              } ${audioState[call.id]?.loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            >
+                              {audioState[call.id]?.loading ? (
+                                <><Volume2 size={12} className="animate-pulse" /> Loading...</>
+                              ) : audioState[call.id]?.playing ? (
+                                <><Pause size={12} /> Pause</>
+                              ) : (
+                                <><Play size={12} /> Play Recording</>
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Chat messages from new endpoint */}
+                      {/* Chat messages */}
                       {!call.elevenlabs_conversation_id ? (
                         <p className="text-xs text-gray-400 text-center py-4">No conversation recorded</p>
                       ) : chat?.loading ? (

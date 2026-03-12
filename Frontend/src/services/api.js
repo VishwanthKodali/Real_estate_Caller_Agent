@@ -83,6 +83,7 @@ export const callsApi = {
   voices:         () => api.get('/calls/voices'),
   chat:           conversationId => api.get(`/calls/chat/${conversationId}`),  // ← NEW
   refreshOutcomes: campaignId => api.post(`/calls/${campaignId}/refresh-outcomes`),
+  audio:          conversationId => `${api.defaults.baseURL}/calls/audio/${conversationId}`,
 }
 
 // Dashboard
