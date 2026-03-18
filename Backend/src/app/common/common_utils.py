@@ -1,44 +1,9 @@
-import redis.asyncio as aioredis  # type: ignore
-import chromadb
+import logging
 from datetime import datetime
-import pytz
 from .settings import Settings
 from typing import Optional
 
-def async_redis_client():
-    """Return an async Redis client compatible with `await client.keys(...)`.
-
-    Uses `redis.asyncio` when available. If it's not available, raises ImportError
-    so callers can fall back to a sync client or an executor-based approach.
-    """
-    if aioredis is None:
-        raise ImportError("async redis client (redis.asyncio) is not available in this environment")
-    return aioredis.Redis(host=Settings.redis_host, port=Settings.redis_port, db=Settings.redis_db_camera)
-
-def chroma_client():
-    chroma_client_object = chromadb.HttpClient(host=Settings.chroma_host, port=Settings.chroma_port)
-    return chroma_client_object
-
-def chroma_collection():
-    """Chroma collection will be returned"""
-    chroma_client_object=chroma_client()
-    chroma_collection = chroma_client_object.get_or_create_collection(
-            name=Settings.chroma_face_name_collection,
-            configuration={
-                "hnsw": {
-                        "space": "cosine",
-                        "ef_construction": Settings.chroma_construction_parameter,
-                        "ef_search":Settings.chroma_search_parameter
-                        }
-            }
-            )
-    return chroma_collection
-
-def date_time():
-    time_str = datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%H:%M")
-    date_str = datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y-%m-%d")
-    
-    return time_str,date_str
+logger = logging.getLogger(__name__)
 
 def build_db_url(
     db_type: str,
@@ -57,12 +22,15 @@ def build_db_url(
     - mysql+pymysql://user:pass@localhost:3306/db
     - sqlite:///example.db
     """
+    logger.debug(f"build_db_url called db_type={db_type} driver={driver} user={user} host={host} port={port} database={database}")
 
     # SQLite: special case
     if db_type == "sqlite":
         if database is None:
             raise ValueError("SQLite requires a database file path.")
-        return f"sqlite:///{database}"
+        result = f"sqlite:///{database}"
+        logger.debug(f"build_db_url returning {result}")
+        return result
 
     # base: "postgresql+psycopg2" or "mysql+pymysql"
     if driver:
@@ -86,7 +54,9 @@ def build_db_url(
     if not database:
         raise ValueError("Database name is required for non-SQLite DBs.")
 
-    return f"{dialect}://{auth}{netloc}/{database}"
+    result = f"{dialect}://{auth}{netloc}/{database}"
+    logger.debug(f"build_db_url returning {result}")
+    return result
 
 database_url=build_db_url(Settings.db_type,Settings.db_driver,
                           Settings.db_user,Settings.db_password,

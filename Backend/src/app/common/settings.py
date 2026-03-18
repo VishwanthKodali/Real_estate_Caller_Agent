@@ -3,11 +3,6 @@ from .properties import *
 
 
 class _Settings:
-    _chroma_host:Optional[str] = CHROMA_HOST 
-    _chroma_port:Optional[str] = CHROMA_PORT 
-    _chroma_face_collection_name=COLLECTION_NAME
-    _chroma_construction_parameter=CHROMA_CONSTRUCTION_PARAMETER
-    _chroma_search_parameter=CHROMA_SEARCH_PARAMETER
     _db_type=DB_TYPE
     _db_driver=DB_DRIVER
     _db_host:Optional[str] = DB_HOST 
@@ -15,39 +10,19 @@ class _Settings:
     _db_db:Optional[str] = DB_DB
     _db_user:Optional[str] = DB_USER
     _db_password:Optional[str] = DB_PASSWORD
-    _redis_host:Optional[str] = REDIS_HOST
-    _redis_port:Optional[int] = REDIS_PORT
-    _redis_db_camera:Optional[int] = REDIS_DB_CAMERA
     _jwt_secret_key:Optional[str] = SECRET_KEY
     _jwt_algorithm:Optional[str] = ALGORITHM
     _jwt_access_token_expire_minutes:Optional[int] = ACCESS_TOKEN_EXPIRE_MINUTES
-    _jwt_refresh_token_expire_days:Optional[int] = REFRESH_TOKEN_EXPIRE_DAYS
-    _jwt_blacklist_key:Optional[str] = BLACKLIST_KEY
+    _openai_api_key:Optional[str] = OPENAI_API_KEY
+    _elevenlabs_api_key:Optional[str] = ELEVENLABS_API_KEY
+    _elevenlabs_phone_number_id:Optional[str] = ELEVENLABS_PHONE_NUMBER_ID
+    _application_name:Optional[str] = APP_NAME
+    _upload_dir:Optional[str] = UPLOAD_DIR
 
     def _require(self, value, value_name)->Any:
         if not value:
             raise ValueError(f"Value not set for {value_name}")
         return value
-    
-    @property
-    def chroma_host(self):
-        return self._require(self._chroma_host, "CHROMA_HOST")
-
-    @property
-    def chroma_port(self):
-        return self._require(self._chroma_port, "CHROMA_PORT")
-
-    @property
-    def chroma_face_name_collection(self):
-        return self._require(self._chroma_face_collection_name, "CHROMA_FACE_COLLECTION_NAME")
-    
-    @property
-    def chroma_construction_parameter(self):
-        return self._require(self._chroma_construction_parameter, "CHROMA_CONSTRUCTION_PARAMETER")
-    
-    @property
-    def chroma_search_parameter(self):
-        return self._require(self._chroma_search_parameter,"CHROMA_SEARCH_PARAMETER")
     
     @property
     def db_type(self):
@@ -76,15 +51,6 @@ class _Settings:
     @property
     def db_password(self):
         return self._require(self._db_password, "DB_PASSWORD")
-
-
-    @property
-    def redis_host(self):
-        return self._require(self._redis_host, "REDIS_HOST")
-
-    @property
-    def redis_port(self):
-        return self._require(self._redis_port, "REDIS_PORT")
     
     @property
     def jwt_secret_key(self):
@@ -99,11 +65,22 @@ class _Settings:
         return self._require(self._jwt_access_token_expire_minutes, "ACCESS_TOKEN_EXPIRE_MINUTES")
     
     @property
-    def jwt_refresh_token_expire_days(self):
-        return self._require(self._jwt_refresh_token_expire_days, "REFRESH_TOKEN_EXPIRE_DAYS")
+    def openai_api_key(self):
+        return self._require(self._openai_api_key, "OPENAI_API_KEY")
     
     @property
-    def jwt_blacklist_key(self):
-        return self._require(self._jwt_blacklist_key, "BLACKLIST_KEY")
-
+    def elevenlabs_api_key(self):
+        return self._require(self._elevenlabs_api_key, "ELEVENLABS_API_KEY")
+    
+    @property
+    def elevenlabs_phone_number_id(self):
+        return self._require(self._elevenlabs_phone_number_id, "ELEVENLABS_PHONE_NUMBER_ID")
+    
+    @property
+    def app_name(self):
+        return self._require(self._application_name, "APP_NAME")
+    
+    @property
+    def upload_dir(self):
+        return self._require(self._upload_dir, "UPLOAD_DIR")
 Settings =_Settings()
