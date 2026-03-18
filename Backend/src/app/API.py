@@ -1,38 +1,60 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.app.v1.routers import auth, profile, projects, campaigns
-from src.app.database.db import PostgreSQLDB
-from src.app.common import get_logger
+from contextlib import asynccontextmanager
 
-logger = get_logger("API")
+from src.app.v1.routers import auth, projects, documents, campaigns, calls, prospects, dashboard
+from src.app.common import get_logger,setup_logging
+from src.app.database.db import Base, engine
+from src.app.common.settings import Settings
+
+
+# Create all tables
+Base.metadata.create_all(bind=engine)
+
+# Create upload directory
+os.makedirs(Settings.upload_dir, exist_ok=True)
+
+
+@asynccontextmanager
+async def lifespans(app: FastAPI):
+    setup_logging()
+    logger = get_logger("app_lifespan")
+    logger.info("Starting up the RealEstate Caller API...")
+    yield
+    logger.info("Shutting down the RealEstate Caller API...")
 
 app = FastAPI(
-    title="Real Estate Caller Agent API",
-    description="Backend API for managing AI Caller Agent operations for Real Estate Developer",
-    version="1.0.0"
+    title=Settings.app_name,
+    description="AI-Powered Real Estate Caller Agent Platform",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
 )
+
+
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
-@app.on_event("startup")
-def on_startup():
-    logger.info("Starting up FastAPI application...")
-    try:
-        PostgreSQLDB.create_tables_once()
-        logger.info("Database initialized successfully.")
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
+PREFIX = "/api/v1"
+app.include_router(auth.router, prefix=PREFIX)
+app.include_router(projects.router, prefix=PREFIX)
+app.include_router(documents.router, prefix=PREFIX)
+app.include_router(campaigns.router, prefix=PREFIX)
+app.include_router(prospects.router, prefix=PREFIX)
+app.include_router(calls.router, prefix=PREFIX)
+app.include_router(dashboard.router, prefix=PREFIX)
 
-app.include_router(auth.router)
-app.include_router(profile.router)
-app.include_router(projects.router)
-app.include_router(campaigns.router)
+
+@app.get("/")
+def root():
+    return {"message": "RealEstate Caller API", "docs": "/api/docs"}
 
 
 @app.get("/")
