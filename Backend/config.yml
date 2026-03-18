@@ -1,7 +1,6 @@
-# Name of the collection in ChromaDB
-COLLECTION_NAME: "real_estate_agent_collection"
-CHROMA_CONSTRUCTION_PARAMETER: 200
-CHROMA_SEARCH_PARAMETER: 200
-
 DB_TYPE: "postgresql"
 DB_DRIVER: "psycopg2"
+
+APP_NAME: "RealEstate Caller"
+
+UPLOAD_DIR: "./uploads"
