@@ -1,24 +1,20 @@
-from sqlmodel import create_engine, Session , SQLModel
-from src.app.common import get_logger,database_url
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from src.app.common import database_url
 
-logger=get_logger("DataBase")
+connect_args = {}
+if database_url.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
 
-class PostgreSQL:
-    def __init__(self):
-        self.url=database_url
-        self.client=create_engine(self.url, pool_pre_ping=True)
-        logger.info("PostgreSQL Session is established")
+engine = create_engine(database_url, connect_args=connect_args)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-    def get_session(self):
-        self.session = Session(self.client)
-        return self.session
-    
-    def close_session(self):
-        self.session.close()
-        logger.info("PostgreSQL session closed")
-    
-    def create_tables_once(self):
-        SQLModel.metadata.create_all(self.client)
-        logger.info("Tables created successfully in PostgreSQL")
 
-PostgreSQLDB = PostgreSQL()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
