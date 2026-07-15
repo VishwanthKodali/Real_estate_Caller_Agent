@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: realestate
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+  redis:
+    image: redis:7
+    restart: always
+    networks:
+      - backend-network
+
+  backend:
+    build: .
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/realestate
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=changeme
+      - OPENAI_API_KEY=
+      - ELEVENLABS_API_KEY=
+    depends_on:
+      - db
+      - redis
+    networks:
+      - backend-network
+
+volumes:
+  db_data:
+
+networks:
+  backend-network:
+    driver: bridge
+

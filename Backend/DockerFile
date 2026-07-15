@@ -1,0 +1,41 @@
+# Stage 1: Build dependencies
+FROM python:3.12-slim as builder
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --break-system-packages uv
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+
+ENV UV_LINK_MODE=copy
+RUN uv venv && uv sync --frozen --no-dev
+
+# Stage 2: Runtime
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies (for OpenCV, Tesseract, etc.)
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create log and upload folders
+RUN mkdir -p /app/logs /app/uploads
+
+COPY --from=builder /app/.venv /app/.venv
+COPY . .
+
+# Create entrypoint that activates venv
+RUN echo '#!/bin/bash\n\
+source /app/.venv/bin/activate\n\
+exec "$@"' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+EXPOSE 8000
